@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+
+=begin
+
+Copyright 2012 Taylor Raack <taylor@raack.info>
+
+atitemp - Plugin to monitor the temperature of cores in an
+ATI/AMD graphics card.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+=end
+
+ATICONFIG = '/usr/bin/aticonfig'
+
+if ARGV[0] == "autoconf"
+  puts "yes"
+  exit 0
+end
+
+adapters = `export DISPLAY=:0; /usr/bin/aticonfig --list-adapters`.split("\n").map do |line|
+  match = /.*\s(\d+)\..*/.match(line)
+  match[0] if match
+end.compact
+
+if ARGV[0] == "config"
+  puts 'graph_title ATI/AMD Graphics Card Temperature'
+  #puts 'graph_args -l 0'
+  puts 'graph_vlabel temp in C'
+  puts 'graph_category sensors'
+
+  adapters.each do |x|
+    num = /.*\s(\d+)\..*/.match(x)[1]
+    label = /.*\d\.\d\s(.*)/.match(x)[1]
+    puts "adapter#{num}.label #{label} #{num.to_i + 1}"
+  end
+  exit 0
+end
+
+adapters.each do |x|
+  value = `export DISPLAY=:0; /usr/bin/aticonfig --odgt --adapter=#{/.*\s(\d+)\..*/.match(x)[1]}`
+  temp = /.*\s(\d+\.?\d*)\sC/.match(value)[1]
+  num = /.*\s(\d+)\..*/.match(x)[1]
+  puts "adapter#{num}.value #{temp}"
+end
+
